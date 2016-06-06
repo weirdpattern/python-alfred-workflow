@@ -1,19 +1,12 @@
+import os
+import shutil
 import subprocess
 
 from utils import item_customizer
 
 
 class WorkflowActions(dict):
-    descriptions = {'--update': 'Use this option to force an update',
-                    '--check-for-update': 'Use this option to check for updates',
-                    '--enable-updates': 'Use this option to enable updates',
-                    '--disable-updates': 'Use this option to disable updates',
-                    '--do-daily-updates': 'Use this option to allow the workflow to check for updates daily',
-                    '--do-weekly-updates': 'Use this option to allow the workflow to check for updates weekly',
-                    '--do-monthly-updates': 'Use this option to allow the workflow to check for updates monthly',
-                    '--do-yearly-updates': 'Use this option to allow the workflow to check for updates yearly',
-                    '--include-prereleases': 'Use this option to allow the workflow to update using a prereleases',
-                    '--exclude-prereleases': 'Use this option to prevent the workflow from updating using prereleases'}
+    WORKFLOW_HELP = 'https://github.com/weirdpattern/alfred-python-workflow/blob/master/README.md'
 
     def __init__(self, workflow):
         super(WorkflowActions, self).__init__()
@@ -22,13 +15,20 @@ class WorkflowActions(dict):
         self.update_keys = ['--update', '--check-for-update']
 
         self['--help'] = self.show_help()
-        self['--version'] = self.show_version()
+        self['--workflow-help'] = self.show_workflow_help()
 
-        self['--update-settings'] = self.show_update_settings()
+        self['--version'] = self.show_version()
+        self['--settings'] = self.show_settings()
+
+        self['--open-workflow'] = self.open_directory('workflow')
+        self['--open-cache'] = self.open_directory('cache')
+        self['--open-data'] = self.open_directory('data')
+
+        self['--clear-cache'] = self.clear_directory('cache')
+        self['--clear-data'] = self.clear_directory('data')
 
         if workflow.setting('update'):
             settings = workflow.setting('update')
-            self['--update-help'] = self.show_update_help()
 
             self['--update'] = self.install_update()
             self['--check-for-update'] = self.check_update()
@@ -42,8 +42,7 @@ class WorkflowActions(dict):
             if self.workflow.setting('help'):
                 subprocess.call(['open', self.workflow.setting('help')])
             else:
-                self.workflow.item('Not available', 'Workflow: {0}'.format(self.workflow.name),
-                                   item_customizer('sad.png'))
+                subprocess.call(['open', WorkflowActions.WORKFLOW_HELP])
 
             return True
 
@@ -62,7 +61,7 @@ class WorkflowActions(dict):
 
         return display
 
-    def show_update_settings(self):
+    def show_settings(self):
         def display():
             settings = self.workflow.setting('update')
             if not settings:
@@ -89,6 +88,36 @@ class WorkflowActions(dict):
             return True
 
         return display
+
+    def open_directory(self, directory):
+        if directory.lower() == 'cache':
+            path = self.workflow.cache.directory
+        elif directory.lower() == 'data':
+            path = self.workflow.data.directory
+        else:
+            path = self.workflow.directory
+
+        def process():
+            subprocess.call(['open', path])
+
+        return process
+
+    def clear_directory(self, directory):
+        if directory.lower() == 'cache':
+            path = self.workflow.cache.directory
+        else:
+            path = self.workflow.data.directory
+
+        def process():
+            if os.path.exists(path):
+                for filename in os.listdir(path):
+                    current = os.path.join(path, filename)
+                    if os.path.isdir(current):
+                        shutil.rmtree(current)
+                    else:
+                        os.unlink(current)
+
+        return process
 
     def configure_update_mode_settings(self, settings):
         options = {}
@@ -166,18 +195,15 @@ class WorkflowActions(dict):
 
         return process
 
-    def show_update_help(self):
-        def display():
-            for key in self.update_keys:
-                if key in self.keys():
-                    self.workflow.item(key, WorkflowActions.descriptions[key], item_customizer('empty.png'))
-
-            return True
-
-        return display
-
     def remove(self, set, options):
         for option in options:
             self.pop(option, '')
             if option in set:
                 set.remove(option)
+
+    @staticmethod
+    def show_workflow_help():
+        def display():
+            subprocess.call(['open', WorkflowActions.WORKFLOW_HELP])
+
+        return display

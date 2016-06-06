@@ -20,8 +20,6 @@ class Workflow:
     def __init__(self, defaults=None):
         self._environment = None
         self._directory = None
-        self._data_directory = None
-        self._cache_directory = None
 
         self._info = None
         self._name = None
