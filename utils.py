@@ -115,7 +115,7 @@ def atomic(func):
                 elif old_signal_handler == signal.SIG_DFL:
                     sys.exit(0)
         else:
-            func(self, *args, **kwargs)
+            func(*args, **kwargs)
 
     return handler
 

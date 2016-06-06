@@ -1,3 +1,6 @@
+from .workflow import Workflow
+from .workflow_item import WorkflowItem, InvalidModifier, InvalidText
+
 __title__ = 'Alfred-Workflow-Utils'
 __version__ = '0.1.0'
 __author__ = 'WeirdPattern'
