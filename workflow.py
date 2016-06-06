@@ -197,6 +197,9 @@ class Workflow:
 
             return setting
 
+    def resource(self, resource):
+        return os.path.join(self.directory, resource)
+
     def install_update(self):
         if self.setting('update', 'enabled'):
             frequency = int(self.setting('update', 'frequency') or 1) * 86400
