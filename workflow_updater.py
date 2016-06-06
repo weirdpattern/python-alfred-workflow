@@ -21,7 +21,7 @@ def check_update(workflow, forced='never'):
         data = workflow.getJSON(url, headers={'User-Agent': 'Alfred-Workflow/1.17'})
         if data:
             urls = []
-            for asset in data.get('assets', []):
+            for asset in data[0].get('assets', []):
                 url = asset.get('browser_download_url')
                 if not url or not url.endswith('.alfredworkflow'):
                     continue
@@ -29,8 +29,8 @@ def check_update(workflow, forced='never'):
 
             return {
                 'url': url[0],
-                'version': data['tag_name'],
-                'prerelease': data['prerelease']
+                'version': data[0]['tag_name'],
+                'prerelease': data[0]['prerelease']
             }
 
         return {}

@@ -37,7 +37,9 @@ class Version:
             return True
 
         if left == right:
-            if self.release and not other.release:
+            if not self.release and not other.release:
+                return False
+            elif self.release and not other.release:
                 return False
             elif other.release and not self.release:
                 return True
