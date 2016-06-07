@@ -192,10 +192,14 @@ def register_path(path):
 
 
 def send_notification(title, message):
-    command = "osascript -e 'display notification \"{1}\" with title \"{0}\"'"
-    command = command.format(title.replace('"', r'\"'), message.replace('"', r'\"'))
+    script = "osascript -e 'display notification \"{1}\" with title \"{0}\"'"
+    script = script.format(title.replace('"', r'\"'), message.replace('"', r'\"'))
+    os.system(script)
 
-    os.system(command)
+
+def close_alfred_window():
+    script = "osascript -e 'tell application \"System Events\" to key code 53'"
+    os.system(script)
 
 
 def is_main_thread():
@@ -307,3 +311,17 @@ def request(method, url, content_type, data=None, params=None, headers=None, coo
 def unzip(content):
     decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
     return decoder.decompress(content)
+
+
+def bind(func):
+    def executor(*args):
+        return func(*args)
+
+    return executor
+
+
+def command(args, func):
+    return {
+        'args': args,
+        'executor': bind(func)
+    }

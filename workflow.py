@@ -13,7 +13,7 @@ from workflow_actions import WorkflowActions
 from workflow_settings import WorkflowSettings
 
 from workflow_updater import check_update, install_update
-from utils import decode, register_path, send_notification, item_customizer, request
+from utils import decode, register_path, send_notification, item_customizer, request, close_alfred_window
 
 
 class Workflow:
@@ -47,11 +47,21 @@ class Workflow:
     def args(self):
         feedback = False
         args = [decode(arg) for arg in sys.argv[1:]]
+        if len(args) == 1:
+            args = args[0].split(' ')
 
         if len(args) and self.setting('actionable'):
-            for arg in args:
-                if arg in self.actions.keys():
-                    feedback = self.actions.get(arg)()
+            index = args.index('>') if '>' in args else -1
+            if index > -1:
+                parameters = args[index + 1:]
+                if len(parameters) > 0:
+                    command = parameters.pop(0)
+                    if command in self.actions:
+                        feedback = self.actions.get(command)(*parameters)
+                    else:
+                        feedback = self.actions.defaults(command)
+                else:
+                    feedback = self.actions.defaults()
 
             if feedback:
                 self.feedback()
@@ -190,10 +200,15 @@ class Workflow:
             return self.settings.get(setting)
         else:
             setting = self.settings.get(setting)
-            for param in params:
-                setting = setting[param]
-                if not setting:
-                    return None
+            if setting:
+                for param in params:
+                    if param in setting:
+                        setting = setting[param]
+                    else:
+                        setting = None
+
+                    if not setting:
+                        return None
 
             return setting
 
@@ -260,6 +275,11 @@ class Workflow:
     @staticmethod
     def getJSON(url, params=None, headers=None, cookies=None, auth=None, redirection=True, timeout=60):
         return request('GET', url, 'json', None, params, headers, cookies, auth, redirection, timeout)
+
+    @staticmethod
+    def close():
+        close_alfred_window()
+        return False
 
     @staticmethod
     def run(main, workflow):

@@ -66,3 +66,6 @@ target/
 
 # Specific to mac
 .DS_Store
+tester.py
+info.plist
+settings.json

@@ -2,208 +2,215 @@ import os
 import shutil
 import subprocess
 
-from utils import item_customizer
+from utils import command, item_customizer
 
 
 class WorkflowActions(dict):
-    WORKFLOW_HELP = 'https://github.com/weirdpattern/alfred-python-workflow/blob/master/README.md'
-
     def __init__(self, workflow):
         super(WorkflowActions, self).__init__()
 
         self.workflow = workflow
-        self.update_keys = ['--update', '--check-for-update']
+        self.actions = {
+            'help': command(None, self.help),
+            'version': command(None, self.version),
+            'settings': command(None, self.settings)
+        }
 
-        self['--help'] = self.show_help()
-        self['--workflow-help'] = self.show_workflow_help()
+        for key, descriptor in self.actions.items():
+            self[key] = descriptor.get('executor')
 
-        self['--version'] = self.show_version()
-        self['--settings'] = self.show_settings()
+    def defaults(self, arg=None):
+        arg = arg or ''
 
-        self['--open-workflow'] = self.open_directory('workflow')
-        self['--open-cache'] = self.open_directory('cache')
-        self['--open-data'] = self.open_directory('data')
+        count = 0
+        if 'help'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Help',
+                               'Need a hand? This is the right place to get it',
+                               item_customizer('help.png', autocomplete='> help'))
 
-        self['--clear-cache'] = self.clear_directory('cache')
-        self['--clear-data'] = self.clear_directory('data')
+        if 'version'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Version',
+                               'What version of the workflow are you running',
+                               item_customizer('info.png', autocomplete='> version'))
 
-        if workflow.setting('update'):
-            settings = workflow.setting('update')
+        if 'settings'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Settings',
+                               'Want to make it yours? Let\'s customize the workflow',
+                               item_customizer('settings.png', autocomplete='> settings '))
 
-            self['--update'] = self.install_update()
-            self['--check-for-update'] = self.check_update()
+        if count == 0:
+            self.workflow.item('No match for {0}'.format(arg), 'Click to clear your filter',
+                               item_customizer('sad.png', autocomplete='>'))
 
-            self.configure_update_mode_settings(settings)
-            self.configure_update_frequency_settings(settings)
-            self.configure_update_prereleases_settings(settings)
+        return True
 
-    def show_help(self):
-        def display():
-            if self.workflow.setting('help'):
-                subprocess.call(['open', self.workflow.setting('help')])
-            else:
-                subprocess.call(['open', WorkflowActions.WORKFLOW_HELP])
+    def help(self):
+        pass
 
-            return True
+    def version(self):
+        if self.workflow.version:
+            self.workflow.item('{0}'.format(str(self.workflow.version)),
+                               'Workflow {0}'.format(self.workflow.name),
+                               item_customizer('info.png'))
+        else:
+            self.workflow.item('Not available',
+                               'Workflow {0}'.format(self.workflow.name),
+                               item_customizer('sad.png'))
 
-        return display
+        return True
 
-    def show_version(self):
-        def display():
-            if self.workflow.version:
-                self.workflow.item('{0}'.format(str(self.workflow.version)), 'Workflow: {0}'.format(self.workflow.name),
-                                   item_customizer('info.png'))
-            else:
-                self.workflow.item('Not available', 'Workflow: {0}'.format(self.workflow.name),
-                                   item_customizer('sad.png'))
+    def settings(self, *args):
+        arg = ''
+        if len(args) > 0:
+            arg = args[0]
+            if arg == 'data':
+                return self.settings_data_display(*args[1:])
+            elif arg == 'cache':
+                return self.settings_cache_display(*args[1:])
+            elif arg == 'update':
+                return self.settings_update_display(*args[1:])
 
-            return True
+        count = 0
+        if 'data'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Workflow Data', 'Use this to manage your workflow data',
+                               item_customizer('data.png', autocomplete='> settings data '))
 
-        return display
+        if 'cache'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Workflow Cache', 'Use this to manage your workflow cache',
+                               item_customizer('cache.png', autocomplete='> settings cache '))
 
-    def show_settings(self):
-        def display():
-            settings = self.workflow.setting('update')
-            if not settings:
-                self.workflow.item('Updates not supported',
-                                   'Workflow: {0}'.format(self.workflow.name), item_customizer('sad.png'))
+        if 'update'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Workflow Update', 'Use this to manage your workflow auto-update preferences',
+                               item_customizer('update.png', autocomplete='> settings update '))
 
-            elif not settings['enabled']:
-                self.workflow.item('Updates are disabled for this workflow',
-                                   'Use "--update-mode auto|manual" to enable updates',
-                                   item_customizer('disable.png'))
-            else:
-                self.workflow.item('Enabled: {0}'.format(settings['enabled']),
-                                   'Workflow will automatically search for updates',
-                                   item_customizer('update.png'))
+        if count == 0:
+            self.workflow.item('No match for {0}'.format(arg), 'Click to clear your filter',
+                               item_customizer('sad.png', autocomplete='> settings '))
 
-                self.workflow.item('Frequency: {0}'.format(settings['frequency'] or 1),
-                                   'The frequency in days with which the workflow will look for new versions',
-                                   item_customizer('time.png'))
+        return True
 
-                self.workflow.item('Include releases: {0}'.format(settings['include-prereleases'] or False),
-                                   'Whether pre-releases will be included in the updates or not',
-                                   item_customizer('release.png'))
+    def settings_data_display(self, *args):
+        arg = ''
+        if len(args) > 0:
+            arg = args[0]
+            if arg == 'open-data':
+                return self.open_directory('data')
+            elif arg == 'clear-data':
+                return self.clear_directory('data')
 
-            return True
+        count = 0
 
-        return display
+        if 'open'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Open Data Directory', 'Inspect the content of the data directory',
+                               item_customizer('folder.png', autocomplete='> settings data open-data'))
 
-    def open_directory(self, directory):
-        if directory.lower() == 'cache':
-            path = self.workflow.cache.directory
-        elif directory.lower() == 'data':
+        if 'clear'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Clear Data Directory', 'Clears the content of the data directory',
+                               item_customizer('clear.png', autocomplete='> settings data clear-data'))
+
+        if count == 0:
+            self.workflow.item('No match for {0}'.format(arg), 'Click to clear your filter',
+                               item_customizer('sad.png', autocomplete='> settings data '))
+
+        return True
+
+    def settings_cache_display(self, *args):
+        arg = ''
+        if len(args) > 0:
+            arg = args[0]
+            if arg == 'open-cache':
+                return self.open_directory('cache')
+            elif arg == 'clear-cache':
+                return self.clear_directory('cache')
+
+        count = 0
+        if 'open'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Open Cache Directory', 'Inspect the content of the cache directory',
+                               item_customizer('folder.png', autocomplete='> settings cache open-cache'))
+
+        if 'clear'.startswith(arg.lower()):
+            count += 1
+            self.workflow.item('Clear Cache Directory', 'Clears the content of the cache directory',
+                               item_customizer('clear.png', autocomplete='> settings cache clear-cache'))
+
+        if count == 0:
+            self.workflow.item('No match for {0}'.format(arg), 'Click to clear your filter',
+                               item_customizer('sad.png', autocomplete='> settings cache '))
+
+        return True
+
+    def settings_update_display(self, *args):
+        arg = ''
+        if len(args) > 0:
+            arg = args[0]
+            if arg == 'auto':
+                pass
+            elif arg == 'frequency':
+                pass
+            elif arg == 'include':
+                pass
+
+        count = 0
+        if 'enable'.startswith(arg):
+            count += 1
+            self.workflow.item('Auto update is {0}'.format(
+                               'enable' if self.workflow.setting('update', 'enabled') else 'disable'),
+                               'Select to change this value',
+                               item_customizer('update.png', autocomplete='> settings update auto '))
+
+        if 'frequency'.startswith(arg):
+            count += 1
+            self.workflow.item('Workflow will check for updates every {0} days'.format(
+                               self.workflow.setting('update', 'frequency')),
+                               'Select to change this value',
+                               item_customizer('time.png', autocomplete='> settings update frequency '))
+
+        if 'include'.startswith(arg):
+            count += 1
+            self.workflow.item('Only releases will be considered when updating the workflow'
+                               if not self.workflow.setting('update', 'include-prereleases')
+                               else 'Pre-releases will be considered when updating the workflow',
+                               'Select to change this value',
+                               item_customizer('release.png', autocomplete='> settings update include '))
+
+        if count == 0:
+            self.workflow.item('No match for {0}'.format(arg), 'Click to clear your filter',
+                               item_customizer('sad.png', autocomplete='> settings update '))
+
+        return True
+
+    def open_directory(self, which):
+        if which.lower() == 'data':
             path = self.workflow.data.directory
+        elif which.lower() == 'cache':
+            path = self.workflow.cache.directory
         else:
             path = self.workflow.directory
 
-        def process():
-            subprocess.call(['open', path])
+        subprocess.call(['open', path])
+        return self.workflow.close()
 
-        return process
+    def clear_directory(self, which):
+        message = 'No data to be cleared'
+        path = self.workflow.data.directory if which == 'data' else self.workflow.cache.directory
+        if os.path.exists(path):
+            for filename in os.listdir(path):
+                current = os.path.join(path, filename)
+                if os.path.isdir(current):
+                    shutil.rmtree(current)
+                else:
+                    os.unlink(current)
 
-    def clear_directory(self, directory):
-        if directory.lower() == 'cache':
-            path = self.workflow.cache.directory
-        else:
-            path = self.workflow.data.directory
+            message = '{0} directory cleared!'.format(which.capitalize())
 
-        def process():
-            if os.path.exists(path):
-                for filename in os.listdir(path):
-                    current = os.path.join(path, filename)
-                    if os.path.isdir(current):
-                        shutil.rmtree(current)
-                    else:
-                        os.unlink(current)
-
-        return process
-
-    def configure_update_mode_settings(self, settings):
-        options = {}
-
-        def callback():
-            self.configure_update_mode_settings(settings)
-
-        self.remove(self.update_keys, ['--enable-updates', '--disable-updates'])
-
-        if not settings['enabled']:
-            options['--enable-updates'] = self.update_option('update', 'enabled', True, callback)
-        else:
-            options['--disable-updates'] = self.update_option('update', 'enabled', False, callback)
-
-        self.update(options)
-        self.update_keys.extend(options.keys())
-
-    def configure_update_frequency_settings(self, settings):
-        options = {}
-
-        def callback():
-            self.configure_update_frequency_settings(settings)
-
-        self.remove(self.update_keys, ['--do-daily-updates', '--do-weekly-updates', '--do-monthly-updates',
-                                       '--do-yearly-updates'])
-
-        options['--do-daily-updates'] = self.update_option('update', 'frequency', 1, callback)
-        options['--do-weekly-updates'] = self.update_option('update', 'frequency', 7, callback)
-        options['--do-monthly-updates'] = self.update_option('update', 'frequency', 30, callback)
-        options['--do-yearly-updates'] = self.update_option('update', 'frequency', 365, callback)
-
-        self.update(options)
-        self.update_keys.extend(options.keys())
-
-    def configure_update_prereleases_settings(self, settings):
-        options = {}
-
-        def callback():
-            self.configure_update_prereleases_settings(settings)
-
-        self.remove(self.update_keys, ['--include-prereleases', '--exclude-prereleases'])
-
-        if settings['include-prereleases']:
-            options['--exclude-prereleases'] = self.update_option('update', 'include-prereleases', False, callback)
-        else:
-            options['--include-prereleases'] = self.update_option('update', 'include-prereleases', True, callback)
-
-        self.update(options)
-        self.update_keys.extend(options.keys())
-
-    def install_update(self):
-        def process():
-            self.workflow.install_update()
-
-        return process
-
-    def check_update(self):
-        def process():
-            self.workflow.check_update(True)
-
-        return process
-
-    def update_option(self, setting, option, value, callback):
-        def process():
-            old = self.workflow.setting(setting, option)
-            self.workflow.setting(setting)[option] = value
-            self.workflow.settings.save()
-
-            self.workflow.item('Setting {0} updated successfully'.format(option),
-                               'Changed from {0} to {1}'.format(old, value), item_customizer('ok.png'))
-
-            callback()
-
-            return True
-
-        return process
-
-    def remove(self, set, options):
-        for option in options:
-            self.pop(option, '')
-            if option in set:
-                set.remove(option)
-
-    @staticmethod
-    def show_workflow_help():
-        def display():
-            subprocess.call(['open', WorkflowActions.WORKFLOW_HELP])
-
-        return display
+        self.workflow.notification(self.workflow.name, message)
+        return self.workflow.close()
