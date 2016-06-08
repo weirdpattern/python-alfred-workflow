@@ -5,8 +5,8 @@ import subprocess
 from workflow_version import Version
 
 
-def check_update(workflow, forced='never'):
-    if not workflow.setting('update', 'enabled'):
+def check_update(workflow, forced='never', auto_install=False):
+    if not workflow.updatable():
         return False
 
     prereleases = workflow.setting('update', 'include-prereleases') or False
@@ -28,32 +28,37 @@ def check_update(workflow, forced='never'):
                 urls.append(url)
 
             return {
-                'url': url[0],
+                'url': url,
                 'version': data[0]['tag_name'],
                 'prerelease': data[0]['prerelease']
             }
 
         return {}
 
-    show = False
+    available = False
     message = 'You are running the latest version of "{0}"'.format(workflow.name)
     release = workflow.cache.read('.workflow_updater', fill, 3600)
     if release:
         if not release['prerelease'] or (release['prerelease'] and prereleases):
             latest = Version(release['version'])
             if latest > workflow.version:
-                show = True
                 message = 'Version {0} of workflow {1} is available'.format(latest, workflow.name)
+                available = True
 
-    if forced == 'always' or (show and forced == 'only_when_available'):
-        workflow.notification('Workflow updater', message)
+    if forced == 'always' or (available and forced == 'only_when_available'):
+        if available and auto_install:
+            install_update(workflow, release['url'])
+        else:
+            workflow.notification('Workflow updater', message)
 
     return True
 
 
 def install_update(workflow, url):
+    workflow.notification(workflow.name, 'Installation will commence shortly')
+
     filename = url.split('/')[-1]
-    if not filename.endsWith('.alfredworkflow'):
+    if not filename.endswith('.alfredworkflow'):
         workflow.notification('Workflow updater', 'The provided url is not an actual workflow')
 
     installer = os.path.join(tempfile.gettempdir(), filename)

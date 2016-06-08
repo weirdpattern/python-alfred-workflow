@@ -76,7 +76,7 @@ class WorkflowCache:
             except (OSError, IOError):
                 return False
 
-        return atomic_save(self)
+        return atomic_save()
 
     def clear(self, filename):
         path = os.path.join(self.directory, '{0}.{1}'.format(filename, self.serializer.name or 'custom'))

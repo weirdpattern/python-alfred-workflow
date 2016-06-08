@@ -195,48 +195,65 @@ class Workflow:
 
         return self._settings
 
-    def setting(self, setting, *params):
-        if len(params) == 0:
-            return self.settings.get(setting)
-        else:
-            setting = self.settings.get(setting)
-            if setting:
-                for param in params:
-                    if param in setting:
-                        setting = setting[param]
-                    else:
-                        setting = None
+    def setting(self, *args):
+        setting = self.settings
 
-                    if not setting:
-                        return None
+        params = list(args)
+        while setting and len(params) > 0:
+            param = params.pop(0)
+            setting = setting[param] if param in setting else None
 
-            return setting
+        return setting
 
     def resource(self, resource):
         return os.path.join(self.directory, resource)
 
-    def install_update(self):
-        if self.setting('update', 'enabled'):
+    def updatable(self, include_enabled_flag=True):
+        enabled = self.setting('update', 'enabled')
+        github_setting = self.setting('update', 'repository', 'github')
+
+        if include_enabled_flag:
+            return enabled and github_setting and 'username' in github_setting and 'repository' in github_setting
+
+        return github_setting and 'username' in github_setting and 'repository' in github_setting
+
+    def update_available(self):
+        if self.updatable():
             frequency = int(self.setting('update', 'frequency') or 1) * 86400
             cached = self.cache.read('.workflow_updater', None, frequency)
-            if cached:
+            if cached and 'version' in cached:
                 newest = Version(cached['version'])
                 if newest > self.version:
-                    Workflow.background(install_update, 'install_update', self, cached['url'])
+                    return cached
 
-    def check_update(self, forced=False):
-        if self.setting('update', 'enabled'):
-            frequency = int(self.setting('update', 'frequency') or 1) * 86400
-            cached = self.cache.read('.workflow_updater', None, frequency)
-            if forced or cached is None:
-                mode = 'never'
+        return None
 
-                if forced:
-                    mode = 'always'
-                elif cached:
-                    mode = 'only_when_available'
+    def check_update(self, forced=False, auto_install=False):
+        cached = self.update_available()
+        if self.updatable() and (forced or not cached):
+            mode = 'never'
 
-                Workflow.background(check_update, 'check_update', self, mode)
+            if forced:
+                mode = 'always'
+            elif cached:
+                mode = 'only_when_available'
+
+            Workflow.background(check_update, 'check_update', self, mode, auto_install)
+            return True
+
+        return False
+
+    def install_update(self):
+        cached = self.update_available()
+        if self.updatable() and cached:
+            Workflow.background(install_update, 'install_update', self, cached['url'])
+            return True
+
+        return False
+
+    def check_and_install_update(self):
+        if not install_update():
+            self.check_update(True, True)
 
     def item(self, title, subtitle, customizer=None):
         item = WorkflowItem(title, subtitle)

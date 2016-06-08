@@ -21,6 +21,7 @@ class WorkflowSettings(dict):
                     self._original[key] = value
 
         self.update(self._original)
+        self.save()
 
     def save(self):
         @atomic
@@ -37,23 +38,4 @@ class WorkflowSettings(dict):
             except (OSError, IOError):
                 return False
 
-        return atomic_save(self)
-
-    def update(self, *args, **kwargs):
-        super(WorkflowSettings, self).update(*args, **kwargs)
-        self.save()
-
-    def setdefault(self, key, value=None):
-        results = super(WorkflowSettings, self).setdefault(key, value)
-        self.save()
-
-        return results
-
-    def __setitem__(self, key, value):
-        if self._original.get(key) != value:
-            super(WorkflowSettings, self).__setitem__(key, value)
-            self.save()
-
-    def __delitem__(self, key):
-        super(WorkflowSettings, self).__delitem__(key)
-        self.save()
+        return atomic_save()

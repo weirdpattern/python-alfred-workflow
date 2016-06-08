@@ -1,3 +1,12 @@
+"""
+.. module:: utils
+   :platform: Unix
+   :synopsis: A set of utilities for the workflow.
+
+.. moduleauthor:: Patricio Trevino <patricio@weirdpattern.com>
+
+"""
+
 from __future__ import print_function, unicode_literals
 
 import os
@@ -29,31 +38,97 @@ except ImportError:
 
 
 class AcquisitionError(Exception):
-    """Locking error"""
+    """A class that represents a lock acquisition error.
+
+    .. note: used by :class:`lock` to indicate a timeout has occurred while trying to get a lock on a file.
+
+    """
 
 
 class NoRedirectHttpHandler(HTTPRedirectHandler):
+    """A class that represents a no HTTP redirection policy.
+
+    .. note: used by :meth:`request` to handle no redirect scenarios.
+
+    """
+
     def redirect_request(self, *args):
+        """Handles the redirection, by preventing it.
+
+        :param args: the arguments of the request.
+        :type args: ``tuple``.
+        :return: ``None``.
+        :rtype: ``None``.
+        """
+
         return None
 
 
-class PickleSerializer:
+class PickleSerializer(object):
+    """A class that represents a pickle serializer.
+
+    .. note: used by :class:`WorkflowCache` and :class:`WorkflowData` to serialize files.
+
+    """
+
     def __init__(self):
+        """Initializes the serializer"""
+
         self._serializer = cPickle if sys.version_info[0] < 3 else pickle
 
     @property
     def name(self):
+        """The name of the serializer.
+
+        :return: the constant ``pickle``.
+        :rtype: ``str``.
+        """
+
         return 'pickle'
 
     def load(self, handler):
+        """Deserializes the file handler.
+
+        :param handler: the file to be deserialized.
+        :type handler: :class:`file`.
+        :return: the content of the file.
+        :rtype: ``str``
+        """
+
         return self._serializer.load(handler)
 
     def dump(self, obj, handler):
+        """Serializes the object in the given file handler.
+
+        :param obj: the data to be serialized.
+        :type obj: ``any``.
+        :param handler: the file handle to be used.
+        :type handler: :class:`file`.
+        :return: the pickled representation of the object as a string
+        :rtype: ``str``.
+        """
+
         return self._serializer.dump(obj, handler, protocol=-1)
 
 
-class lock:
+class lock(object):
+    """Creates a lock in a file.
+
+    .. note: used by :class:`WorkflowSettings` to atomically update the settings.
+
+    """
+
     def __init__(self, path, timeout=0, delay=0.05):
+        """Initializes the lock.
+
+        :param path: the path to the file to be locked.
+        :type path: ``str``.
+        :param timeout: the timeout to be used while locking the file.
+        :type timeout: ``int``.
+        :param delay: the time to wait on exception scenarios.
+        :type delay: ``float``
+        """
+
         self.file = path + '.lock'
         self.timeout = timeout
         self.delay = delay
@@ -61,6 +136,15 @@ class lock:
         self.locked = False
 
     def acquire(self, blocking=True):
+        """Tries to acquire a lock on the file.
+
+        :param blocking: a flag that indicates whether the acquire operation should return ``True``
+                         or ``False`` when a file is already locked.
+        :type blocking: ``boolean``
+        :return: ``True`` if the lock was acquired; ``False`` otherwise.
+        :rtype: ``boolean``
+        """
+
         start = time.time()
         while True:
             try:
@@ -81,24 +165,60 @@ class lock:
         return True
 
     def release(self):
+        """Releases the lock on the file"""
+
         self.locked = False
         os.unlink(self.file)
 
     def __enter__(self):
+        """Handles the enter event in a contextmanager.
+
+        :return: the current instance of the lock.
+        :rtype: :class:`lock`
+        """
+
         self.acquire()
         return self
 
     def __exit__(self, type, value, traceback):
+        """Handles the exit event in a contextmanager.
+
+        :param type: the exception type.
+        :type type: ``str``
+        :param value: the exception instance.
+        :type value: ``exception``
+        :param traceback: the traceback of the exception.
+        :type traceback: :class:`traceback`
+        """
+
         self.release()
 
     def __del__(self):
+        """Handles the destroy event in a contextmanager"""
+
         if self.locked:
             self.release()
 
 
 def atomic(func):
+    """Decorator that postpones SIGTERM until wrapped function is complete.
+
+    :param func: the function to be decorated.
+    :type func: ``callable``.
+    :return: the handler function to be invoked by the decorator when ``func`` gets called.
+    :rtype: ``callable``.
+    """
+
     @wraps(func)
-    def handler(self, *args, **kwargs):
+    def handler(*args, **kwargs):
+        """The handler function to be invoked by the decorator when ``func`` gets called.
+
+        :param args: the arguments of ``func``, if any.
+        :type ``tuple``.
+        :param kwargs: the keyed arguments of ``func``, if any.
+        :type ``tuple``.
+        """
+
         if is_main_thread():
             caught_signal = []
             old_signal_handler = signal.getsignal(signal.SIGTERM)
@@ -122,6 +242,14 @@ def atomic(func):
 
 @contextmanager
 def atomic_write(path, mode):
+    """Makes sure a file gets written correctly by working on a copy, then renaming it to the real file.
+
+    :param path: the path to the file to be handled.
+    :type path: ``str``.
+    :param mode: the mode in which the file should be opened.
+    :type mode: ``str``.
+    """
+
     suffix = '.aw.temp'
     filepath = path + suffix
     with open(filepath, mode) as handler:
@@ -136,6 +264,16 @@ def atomic_write(path, mode):
 
 
 def decode(text, normalization='NFC'):
+    """Decodes strings to unicode.
+
+    :param text: the text to be decoded.
+    :type text: ``str``.
+    :param normalization: the normalization to be used.
+    :type normalization: ``str``.
+    :return: the decoded text.
+    :rtype: ``str``.
+    """
+
     if text and not isinstance(text, unicode):
         text = text.decode('unicode-escape')
         return unicodedata.normalize(normalization, text)
@@ -144,6 +282,14 @@ def decode(text, normalization='NFC'):
 
 
 def ensure_path(path):
+    """Ensures the path exists.
+
+    :param path: the path to validate.
+    :type path: ``str``.
+    :return: the same path.
+    :rtype: ``str``.
+    """
+
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -151,6 +297,16 @@ def ensure_path(path):
 
 
 def parse_version(string):
+    """Parses the string to get all the parts that comprises a :class:Version
+
+    .. note: this method parses versions in SEMVER.
+
+    :param string: the string to be parsed.
+    :type string: ``str``.
+    :return: a 5-tuple containing the major, minor, patch, release and build information.
+    :rtype: 5-tuple (``int``, ``int``, ``int``, ``str``, ``str``).
+    """
+
     version_matcher = re.compile(r'([0-9\.]+)([-+].+)?').match
 
     if string.startswith('v'):
@@ -188,28 +344,81 @@ def parse_version(string):
 
 
 def register_path(path):
+    """Adds a path to ``sys.path``
+
+    .. note: adding a path to ``sys.path`` allows python to find it without specifying a relative path.
+
+    :param path: the path to be added.
+    :type path: ``str``.
+    """
     sys.path.insert(0, path)
 
 
 def send_notification(title, message):
+    """Send a new OS X notification.
+
+    .. note: title accepts 48 chars
+             message accepts 96 chars
+
+    :param title: the title of the notification.
+    :type title: ``str``.
+    :param message:  the message to be displayed in the notification.
+    :type message: ``str``.
+    """
+
     script = "osascript -e 'display notification \"{1}\" with title \"{0}\"'"
     script = script.format(title.replace('"', r'\"'), message.replace('"', r'\"'))
     os.system(script)
 
 
 def close_alfred_window():
+    """Closes the current Alfred window"""
+
     script = "osascript -e 'tell application \"System Events\" to key code 53'"
     os.system(script)
 
 
 def is_main_thread():
+    """Determines if the current thread is the actual main thread.
+
+    .. note: used by :meth:`atomic` decorator.
+
+    :return: ``True`` if the current thread is the actual main thread; ``False`` otherwise.
+    """
+
     return isinstance(threading.current_thread(), threading._MainThread)
 
 
 def item_customizer(icon=None, valid=False, arg=None, autocomplete=None):
+    """Creates a :class:`WorkflowItem` customizer.
+
+    .. note: used by :class:`Workflow`
+    .. warning: this is not meant to be used by others.
+                DO NOT USE IT.
+
+    :param icon: the icon to be used.
+    :type icon: ``str``.
+    :param valid: a flag indicating whether the item should be valid or not.
+    :type valid: ``boolean``.
+    :param arg: the argument to be used by the item
+    :type arg: ``str``.
+    :param autocomplete: the autocomplete information of the item.
+    :type autocomplete: ``str``.
+    :return: the handler function to be invoked when preparing the item.
+    :rtype: ``callable``
+    """
+
     icon = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'icons', icon) if icon else None
 
     def customize(item):
+        """Customizes the item.
+
+        :param item: the item to be customized.
+        :type item: :class:`WorkflowItem`.
+        :return: the same item with the customizations.
+        :rtype: :class:`WorkflowItem`.
+        """
+
         item.arg = arg
         item.icon = icon
         item.valid = valid
@@ -221,6 +430,14 @@ def item_customizer(icon=None, valid=False, arg=None, autocomplete=None):
 
 
 def format_headers(headers):
+    """Formats the headers of a :class:`Request`.
+
+    :param headers: the headers to be formatted.
+    :type headers: :class:`dict`.
+    :return: the headers in lower case format.
+    :rtype: :class:`dict`.
+    """
+
     dictionary = {}
 
     for k, v in headers.items():
@@ -237,6 +454,32 @@ def format_headers(headers):
 
 def request(method, url, content_type, data=None, params=None, headers=None, cookies=None,
             auth=None, redirection=True, timeout=60):
+    """Creates a new HTTP request and processes it.
+
+    :param method: the type of request to be created (``GET`` or ``POST``)
+    :type method: ``str``.
+    :param url: the url of the request.
+    :type url: ``str``.
+    :param content_type: the content type to be returned (``raw`` or ``json``)
+    :type content_type: ``str``.
+    :param data: the data to be posted.
+    :type data: ``any``.
+    :param params: mapping of url parameters.
+    :type params: :class:`dict`.
+    :param headers: the headers of the request.
+    :type headers: :class:`dict`.
+    :param cookies: the cookies of the request.
+    :type cookies: :class:`dict`.
+    :param auth: the authentication information to be used.
+    :type auth: :class:`dict`.
+    :param redirection: a flag indicating whether redirection is allowed or not.
+    :type redirection: ``boolean``.
+    :param timeout: a timeout for the request.
+    :type timeout: ``int``.
+    :return: the content obtained from executing the request.
+    :rtype: ``str`` or ``json``.
+    """
+
     socket.setdefaulttimeout(timeout)
 
     openers = []
@@ -309,19 +552,26 @@ def request(method, url, content_type, data=None, params=None, headers=None, coo
 
 
 def unzip(content):
+    """Decompresses the content.
+
+    :param content: the content to be decompressed.
+    :type content: ``str``.
+    :return: the decompressed content.
+    :rtype: ``str``.
+    """
     decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
     return decoder.decompress(content)
 
 
 def bind(func):
+    """Binds func.
+
+    :param func: the function to be bind.
+    :type func: ``callable``.
+    :return: the handler to be used to invoke func.
+    :rtype: ``callable``.
+    """
     def executor(*args):
         return func(*args)
 
     return executor
-
-
-def command(args, func):
-    return {
-        'args': args,
-        'executor': bind(func)
-    }
