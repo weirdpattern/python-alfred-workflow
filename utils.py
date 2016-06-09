@@ -16,7 +16,6 @@ import json
 import zlib
 import time
 import errno
-import socket
 import signal
 import pickle
 import cPickle
@@ -48,7 +47,7 @@ class AcquisitionError(Exception):
 class NoRedirectHttpHandler(HTTPRedirectHandler):
     """A class that represents a no HTTP redirection policy.
 
-    .. note: used by :meth:`request` to handle no redirect scenarios.
+    .. note: used by :func:`request` to handle no redirect scenarios.
 
     """
 
@@ -381,7 +380,7 @@ def close_alfred_window():
 def is_main_thread():
     """Determines if the current thread is the actual main thread.
 
-    .. note: used by :meth:`atomic` decorator.
+    .. note: used by :func:`atomic` decorator.
 
     :return: ``True`` if the current thread is the actual main thread; ``False`` otherwise.
     """
@@ -480,8 +479,6 @@ def request(method, url, content_type, data=None, params=None, headers=None, coo
     :rtype: ``str`` or ``json``.
     """
 
-    socket.setdefaulttimeout(timeout)
-
     openers = []
     if not redirection:
         openers.append(NoRedirectHttpHandler())
@@ -531,12 +528,12 @@ def request(method, url, content_type, data=None, params=None, headers=None, coo
         url = urlparse.urlunsplit((scheme, netloc, path, query, fragment))
 
     try:
-        response = urlopen(Request(url, data, headers))
+        response = urlopen(Request(url, data, headers), timeout=timeout)
         response_headers = response.info()
 
         content = response.read()
-        if ('gzip' in response_headers.get('content-encoding', '') or
-                    'gzip' in response_headers.get('transfer-encoding', '')):
+        if 'gzip' in response_headers.get('content-encoding', '') \
+                or 'gzip' in response_headers.get('transfer-encoding', ''):
             content = unzip(content)
 
         if content_type.lower() == 'json':

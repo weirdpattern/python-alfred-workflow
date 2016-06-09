@@ -1,3 +1,12 @@
+"""
+.. module:: workflow_updater
+   :platform: Unix
+   :synopsis: Controls the workflow update operations.
+
+.. moduleauthor:: Patricio Trevino <patricio@weirdpattern.com>
+
+"""
+
 import os
 import tempfile
 import subprocess
@@ -6,6 +15,21 @@ from workflow_version import Version
 
 
 def check_update(workflow, forced='never', auto_install=False):
+    """Check for updates.
+
+    .. note: this method uses the ``update.repository.github`` configuration to call home.
+
+    :param workflow: the :class:`Workflow` instance we want to update.
+    :type workflow: :class:`workflow.Workflow`
+    :param forced: a flag indicating whether we are forcing the check (through the ``> workflow check`` action).
+    :type forced: ``boolean``.
+    :param auto_install: a flag indicating whether we want to install without confirmation if a new version
+                         is available (through the ``> workflow force-update`` action).
+    :type auto_install: ``boolean``.
+    :return: ``True``.
+    :rtype: ``boolean``.
+    """
+
     if not workflow.updatable():
         return False
 
@@ -55,6 +79,16 @@ def check_update(workflow, forced='never', auto_install=False):
 
 
 def install_update(workflow, url):
+    """Installs an update.
+
+    .. note: this method is the second part of the :func:`check_update` method.
+
+    :param workflow: the :class:`workflow.Workflow` instance we want to update.
+    :type workflow: :class:`workflow.Workflow`
+    :param url: the url where to download the latest version.
+    :type url: ``str``.
+    """
+
     workflow.notification(workflow.name, 'Installation will commence shortly')
 
     filename = url.split('/')[-1]

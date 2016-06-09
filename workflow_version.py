@@ -1,8 +1,28 @@
+"""
+.. module:: workflow_version
+   :platform: Unix
+   :synopsis: Provides an easy way to handle versions.
+
+.. moduleauthor:: Patricio Trevino <patricio@weirdpattern.com>
+
+"""
+
 from utils import parse_version
 
 
-class Version:
+class Version(object):
+    """A class that provides an easy way to handle versions.
+
+    .. note: this class follows the `SEMVER <http://semver.org/>`_ format.
+    """
+
     def __init__(self, version):
+        """Initializes the :class:`Version`.
+
+        :param version: the string representation of the version.
+        :type version: ``str``.
+        """
+
         self.version = version
 
         segments = parse_version(version)
@@ -15,18 +35,39 @@ class Version:
 
     @property
     def segments(self):
-        return self.major, self.minor, self.patch, self.release
+        """Gets the segments comprising this version.
+
+        .. note::
+           The segments are returned in the following order:
+           1. major version
+           2. Minor version
+           3. Patch version
+           4. Release (if any)
+           5. Build (if any)
+
+
+        :return: a ``5-tuple`` with the version information.
+        :rtype: ``5-tuple``.
+        """
+
+        return self.major, self.minor, self.patch, self.release, self.build
 
     def __eq__(self, other):
+        """Handles the eq operator"""
+
         if not isinstance(other, Version):
             raise ValueError('Not a Version instance: {0!r}'.format(other))
 
         return self.segments == other.segments
 
     def __ne__(self, other):
+        """Handles the ne operator"""
+
         return not self.__eq__(other)
 
     def __gt__(self, other):
+        """Handles the gt operator"""
+
         if not isinstance(other, Version):
             raise ValueError('Not a Version instance: {0!r}'.format(other))
 
@@ -59,24 +100,32 @@ class Version:
         return False
 
     def __ge__(self, other):
+        """Handles the ge operator"""
+
         if not isinstance(other, Version):
             raise ValueError('Not a Version instance: {0!r}'.format(other))
 
         return not other.__gt__(self)
 
     def __lt__(self, other):
+        """Handles the lt operator"""
+
         if not isinstance(other, Version):
             raise ValueError('Not a Version instance: {0!r}'.format(other))
 
         return other.__gt__(self)
 
     def __le__(self, other):
+        """Handles the le operator"""
+
         if not isinstance(other, Version):
             raise ValueError('Not a Version instance: {0!r}'.format(other))
 
         return not self.__gt__(other)
 
     def __str__(self):
+        """Handles the str operator"""
+
         version = '{0}.{1}.{2}'.format(self.major, self.minor, self.patch)
 
         if self.release:
@@ -88,4 +137,6 @@ class Version:
         return version
 
     def __repr__(self):
+        """Handles the repr operator"""
+
         return "Version('{0}')".format(str(self))

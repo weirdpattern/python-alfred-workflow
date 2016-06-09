@@ -1,3 +1,12 @@
+"""
+.. module:: workflow_actions
+   :platform: Unix
+   :synopsis: Controls the workflow actions.
+
+.. moduleauthor:: Patricio Trevino <patricio@weirdpattern.com>
+
+"""
+
 import os
 import shutil
 import subprocess
@@ -6,7 +15,15 @@ from utils import bind, item_customizer
 
 
 class WorkflowActions(dict):
+    """A class that controls the workflow actions"""
+
     def __init__(self, workflow):
+        """Initializes the :class:`WorkflowActions`.
+
+        :param workflow: the :class:`workflow.Workflow` instance we want to control.
+        :type workflow: :class:`workflow.Workflow`
+        """
+
         super(WorkflowActions, self).__init__()
 
         self.workflow = workflow
@@ -15,6 +32,14 @@ class WorkflowActions(dict):
         self['settings'] = bind(self.settings)
 
     def defaults(self, arg=None):
+        """Adds the default actions to the workflow.
+
+        :param arg: the argument the user is currently typing in the Alfred window.
+        :type arg: ``str``.
+        :return:  ``True`` to stop the normal execution of the workflow.
+        :rtype: ``boolean``.
+        """
+
         arg = arg or ''
 
         count = 0
@@ -43,9 +68,40 @@ class WorkflowActions(dict):
         return True
 
     def help(self):
-        pass
+        """Handles the ``> help`` action.
+
+        .. note: this method reads the ``help`` url in the settings file; if no url exists, then if defaults to the
+                 `README file <https://raw.githubusercontent.com/weirdpattern/alfred-python-workflow/master/README.md>`_
+                 of the workflow framework (yeap, this framework).
+        """
+
+        url = self.workflow.setting('help')
+        if not url:
+            url = 'https://raw.githubusercontent.com/weirdpattern/alfred-python-workflow/master/README.md'
+
+        subprocess.call(['open', url])
+        self.workflow.close()
 
     def info(self, *args):
+        """Handles the ``> workflow`` action.
+
+        .. note::
+           This method displays the following menu:
+           - Running version x.x.x (to display the workflow version information).
+
+           If update is available:
+           - Proceed with update (proceed with workflow installation)
+
+           Else:
+           - Check for update (check if new versions are available)
+           - Check for update and install (check and install any new version)
+
+        :param args: the chain of commands that activated the action.
+        :type args: ``n-tuple``.
+        :return: ``True`` to stop the normal execution of the workflow.
+        :rtype: ``boolean``.
+        """
+
         arg = ''
         if len(args) > 0:
             arg = args[0]
@@ -92,6 +148,22 @@ class WorkflowActions(dict):
         return True
 
     def settings(self, *args):
+        """Handles the ``> settings`` action.
+
+        .. note::
+           This method displays the following menu:
+           - Workflow Data (opens the data operations menu)
+           - Workflow Cache (opens the cache operations menu)
+
+           If updates are enabled:
+           - Workflow Update (opens the update operations menu)
+
+        :param args: the chain of commands that activated the action.
+        :type args: ``n-tuple``.
+        :return: ``True`` to stop the normal execution of the workflow.
+        :rtype: ``boolean``.
+        """
+
         arg = ''
         if len(args) > 0:
             arg = args[0]
@@ -126,6 +198,19 @@ class WorkflowActions(dict):
         return True
 
     def settings_data_display(self, *args):
+        """Handles the ``> settings data`` action.
+
+        .. note::
+           This method displays the following menu:
+           - Open Data Directory (opens the workflow data directory)
+           - Clear Data Directory (clears the workflow data directory)
+
+        :param args: the chain of commands that activated the action.
+        :type args: ``n-tuple``.
+        :return: ``True`` to stop the normal execution of the workflow.
+        :rtype: ``boolean``.
+        """
+
         arg = ''
         if len(args) > 0:
             arg = args[0]
@@ -153,6 +238,19 @@ class WorkflowActions(dict):
         return True
 
     def settings_cache_display(self, *args):
+        """Handles the ``> settings cache`` action.
+
+        .. note::
+           This method displays the following menu:
+           - Open Cache Directory (opens the workflow cache directory)
+           - Clear Cache Directory (clears the workflow cache directory)
+
+        :param args: the chain of commands that activated the action.
+        :type args: ``n-tuple``.
+        :return: ``True`` to stop the normal execution of the workflow.
+        :rtype: ``boolean``.
+        """
+
         arg = ''
         if len(args) > 0:
             arg = args[0]
@@ -179,6 +277,25 @@ class WorkflowActions(dict):
         return True
 
     def settings_update_display(self, *args):
+        """Handles the ``> settings update`` action.
+
+        .. note::
+           This method displays the following menu:
+           - Auto update is [enabled/disabled].
+
+           If the auto update feature is enabled
+           - Workflow will check for updates every x days (check for updates with frequency x).
+
+           Depending on the include-prerelease setting value
+           - Update using only released code (include only releases).
+           or
+           - Update using pre-released code (include pre-releases).
+
+        :param args: the chain of commands that activated the action.
+        :type args: ``n-tuple``.
+        :return: ``True`` to stop the normal execution of the workflow.
+        :rtype: ``boolean``.
+        """
         arg = ''
         if len(args) > 0:
             arg = args[0]
@@ -221,6 +338,22 @@ class WorkflowActions(dict):
         return True
 
     def settings_update_auto_display(self, *args):
+        """Handles the ``> settings update auto`` action.
+
+        .. note::
+           This method displays the following menu:
+           If the auto updates setting is enabled:
+           - Turn auto updates off (deactivates auto updates).
+
+           Else:
+           - Turn auto updates on (activates auto updates).
+
+        :param args: the chain of commands that activated the action.
+        :type args: ``n-tuple``.
+        :return: ``True`` to stop the normal execution of the workflow.
+        :rtype: ``boolean``.
+        """
+
         arg = ''
         if len(args) > 0:
             arg = args[0]
@@ -248,6 +381,21 @@ class WorkflowActions(dict):
         return True
 
     def settings_update_frequency_display(self, *args):
+        """Handles the ``> settings update frequency`` action.
+
+        .. note::
+           This method displays the following menu:
+           - Check for updates daily (changes the setting to 1).
+           - Check for updates weekly (changes the setting to 7).
+           - Check for updates monthly (changes the setting to 30).
+           - Check for updates yearly (changes the setting to 365).
+
+        :param args: the chain of commands that activated the action.
+        :type args: ``n-tuple``.
+        :return: ``True`` to stop the normal execution of the workflow.
+        :rtype: ``boolean``.
+        """
+
         arg = ''
         if len(args) > 0:
             arg = args[0]
@@ -296,6 +444,22 @@ class WorkflowActions(dict):
         return True
 
     def settings_update_include_display(self, *args):
+        """Handles the ``> settings update include`` action.
+
+        .. note::
+           This method displays the following menu:
+           if the include-prerelease setting value is True:
+           - Do not include pre-releases
+
+           Else:
+           - Include pre-releases
+
+        :param args: the chain of commands that activated the action.
+        :type args: ``n-tuple``.
+        :return: ``True`` to stop the normal execution of the workflow.
+        :rtype: ``boolean``.
+        """
+
         arg = ''
         if len(args) > 0:
             arg = args[0]
@@ -325,6 +489,14 @@ class WorkflowActions(dict):
         return True
 
     def open_directory(self, which):
+        """Opens a directory.
+
+        :param which: the directory to open (``data``, ``cache`` or ``workflow``)
+        :type which: ``str``.
+        :return: ``False`` as the application will close.
+        :rtype: ``boolean``.
+        """
+
         if which.lower() == 'data':
             path = self.workflow.data.directory
         elif which.lower() == 'cache':
@@ -336,6 +508,13 @@ class WorkflowActions(dict):
         return self.workflow.close()
 
     def clear_directory(self, which):
+        """Clears a directory.
+
+        :param which: the directory to open (``data`` or ``cache``)
+        :type which: ``str``.
+        :return: ``False`` as the application will close.
+        :rtype: ``boolean``.
+        """
         message = 'No data to be cleared'
         path = self.workflow.data.directory if which == 'data' else self.workflow.cache.directory
         if os.path.exists(path):
@@ -352,6 +531,19 @@ class WorkflowActions(dict):
         return self.workflow.close()
 
     def update_setting(self, setting, option, value, message):
+        """Updates a setting.
+
+        :param setting: the main setting to update.
+        :type setting: ``str``.
+        :param option: the option within the setting to update.
+        :type option: ``str``.
+        :param value: the new value of the setting.
+        :type value: ``any``.
+        :param message: the notification message to be used.
+        :type message: ``str``.
+        :return: ``False`` as the application will close.
+        :rtype: ``boolean``.
+        """
         if option:
             self.workflow.setting(setting)[option] = value
         else:

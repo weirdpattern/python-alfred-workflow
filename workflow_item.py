@@ -1,3 +1,12 @@
+"""
+.. module:: workflow_item
+   :platform: Unix
+   :synopsis: Main class of the project.
+
+.. moduleauthor:: Patricio Trevino <patricio@weirdpattern.com>
+
+"""
+
 import sys
 
 
@@ -9,8 +18,18 @@ class InvalidText(Exception):
     """Invalid text error"""
 
 
-class WorkflowItem:
+class WorkflowItem(object):
+    """A class that represents an item of the workflow"""
+
     def __init__(self, title, subtitle):
+        """Initializes the :class:`WorkflowItem`.
+
+        :param title: the title of the workflow item.
+        :type title: ``str``.
+        :param subtitle: the subtitle of the workflow item.
+        :type subtitle: ``str``.
+        """
+
         self.title = title
         self.subtitle = subtitle
 
@@ -27,19 +46,40 @@ class WorkflowItem:
 
         self.texts = {'large': None, 'copy': None}
 
-    def modifier(self, key, value):
-        if key not in self.modifiers:
-            raise InvalidModifier('Modifier {0} not support'.format(key))
+    def modifier(self, mod, subtitle):
+        """Adds a new subtitle modifier.
 
-        self.modifiers[key] = value
+        :param mod: the modifier key to be used.
+        :type mod: ``str``.
+        :param subtitle: the subtitle to be used.
+        :type subtitle: ``str``.
+        """
 
-    def text(self, texttype, value):
-        if texttype not in self.texts:
-            raise InvalidText('Text type {0} not support'.format(texttype))
+        if mod not in self.modifiers:
+            raise InvalidModifier('Modifier {0} not support'.format(mod))
 
-        self.texts[texttype] = value
+        self.modifiers[mod] = subtitle
+
+    def text(self, ttype, text):
+        """Adds a new text modifier.
+
+        :param ttype: the text type to be used.
+        :type ttype: ``str``.
+        :param text: the text to be used.
+        :type text: ``str``.
+        """
+        if ttype not in self.texts:
+            raise InvalidText('Text type {0} not support'.format(ttype))
+
+        self.texts[ttype] = text
 
     def feedback(self, flush=False):
+        """Outputs the workflow item feedback
+
+        :param flush: a flag indicating whether we want to flush ``sys.stdout`` or not.
+                      This is usually done by :class:`Workflow`.
+        :type flush: ``boolean``.
+        """
         item = '\t<item {0}>\n'
 
         options = []

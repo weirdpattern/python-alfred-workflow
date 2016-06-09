@@ -1,3 +1,12 @@
+"""
+.. module:: workflow_settings
+   :platform: Unix
+   :synopsis: Controls the workflow settings.
+
+.. moduleauthor:: Patricio Trevino <patricio@weirdpattern.com>
+
+"""
+
 import os
 import json
 
@@ -5,7 +14,17 @@ from utils import atomic_write, atomic, lock
 
 
 class WorkflowSettings(dict):
+    """A class that provides a way to interact with a workflow settings"""
+
     def __init__(self, path, defaults=None):
+        """Initializes the :class:`WorkflowSettings`.
+
+        :param path: the path where the settings are located.
+        :type path: ``str``.
+        :param defaults: the default settings to be used in case no other settings are provided.
+        :type defaults: :class:`dict`.
+        """
+
         super(WorkflowSettings, self).__init__()
 
         self._path = path
@@ -24,6 +43,12 @@ class WorkflowSettings(dict):
         self.save()
 
     def save(self):
+        """Saves the settings.
+
+        :return: ``True`` if the operation completes successfully; ``False`` otherwise.
+        :rtype: ``boolean``.
+        """
+
         @atomic
         def atomic_save():
             try:
