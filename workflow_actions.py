@@ -41,21 +41,22 @@ class WorkflowActions(dict):
         """
 
         arg = arg or ''
+        arg = arg.lower()
 
         count = 0
-        if 'help'.startswith(arg.lower()):
+        if 'help'.startswith(arg):
             count += 1
             self.workflow.item('Help',
                                'Need a hand? This is the right place to get it',
                                item_customizer('help.png', autocomplete='> help'))
 
-        if 'workflow'.startswith(arg.lower()):
+        if 'workflow'.startswith(arg):
             count += 1
             self.workflow.item('Workflow',
                                'Get to know your workflow',
                                item_customizer('info.png', autocomplete='> workflow'))
 
-        if 'settings'.startswith(arg.lower()):
+        if 'settings'.startswith(arg):
             count += 1
             self.workflow.item('Settings',
                                'Want to make it yours? Let\'s customize the workflow',
@@ -104,7 +105,7 @@ class WorkflowActions(dict):
 
         arg = ''
         if len(args) > 0:
-            arg = args[0]
+            arg = args[0].lower()
             if arg == 'check':
                 self.workflow.check_update(True)
                 return self.workflow.close()
@@ -166,7 +167,7 @@ class WorkflowActions(dict):
 
         arg = ''
         if len(args) > 0:
-            arg = args[0]
+            arg = args[0].lower()
             if arg == 'data':
                 return self.settings_data_display(*args[1:])
             elif arg == 'cache':
@@ -175,18 +176,18 @@ class WorkflowActions(dict):
                 return self.settings_update_display(*args[1:])
 
         count = 0
-        if 'data'.startswith(arg.lower()):
+        if 'data'.startswith(arg):
             count += 1
             self.workflow.item('Workflow Data', 'Use this to manage your workflow data',
                                item_customizer('data.png', autocomplete='> settings data '))
 
-        if 'cache'.startswith(arg.lower()):
+        if 'cache'.startswith(arg):
             count += 1
             self.workflow.item('Workflow Cache', 'Use this to manage your workflow cache',
                                item_customizer('cache.png', autocomplete='> settings cache '))
 
         if self.workflow.updatable(False):
-            if 'update'.startswith(arg.lower()):
+            if 'update'.startswith(arg):
                 count += 1
                 self.workflow.item('Workflow Update', 'Use this to manage your workflow auto-update preferences',
                                    item_customizer('update.png', autocomplete='> settings update '))
@@ -213,7 +214,7 @@ class WorkflowActions(dict):
 
         arg = ''
         if len(args) > 0:
-            arg = args[0]
+            arg = args[0].lower()
             if arg == 'open-data':
                 return self.open_directory('data')
             elif arg == 'clear-data':
@@ -221,12 +222,12 @@ class WorkflowActions(dict):
 
         count = 0
 
-        if 'open'.startswith(arg.lower()):
+        if 'open'.startswith(arg):
             count += 1
             self.workflow.item('Open Data Directory', 'Inspect the content of the data directory',
                                item_customizer('folder.png', autocomplete='> settings data open-data'))
 
-        if 'clear'.startswith(arg.lower()):
+        if 'clear'.startswith(arg):
             count += 1
             self.workflow.item('Clear Data Directory', 'Clears the content of the data directory',
                                item_customizer('clear.png', autocomplete='> settings data clear-data'))
@@ -253,19 +254,19 @@ class WorkflowActions(dict):
 
         arg = ''
         if len(args) > 0:
-            arg = args[0]
+            arg = args[0].lower()
             if arg == 'open-cache':
                 return self.open_directory('cache')
             elif arg == 'clear-cache':
                 return self.clear_directory('cache')
 
         count = 0
-        if 'open'.startswith(arg.lower()):
+        if 'open'.startswith(arg):
             count += 1
             self.workflow.item('Open Cache Directory', 'Inspect the content of the cache directory',
                                item_customizer('folder.png', autocomplete='> settings cache open-cache'))
 
-        if 'clear'.startswith(arg.lower()):
+        if 'clear'.startswith(arg):
             count += 1
             self.workflow.item('Clear Cache Directory', 'Clears the content of the cache directory',
                                item_customizer('clear.png', autocomplete='> settings cache clear-cache'))
@@ -298,7 +299,7 @@ class WorkflowActions(dict):
         """
         arg = ''
         if len(args) > 0:
-            arg = args[0]
+            arg = args[0].lower()
             if arg == 'auto':
                 return self.settings_update_auto_display(*args[1:])
             elif arg == 'frequency':
@@ -356,7 +357,7 @@ class WorkflowActions(dict):
 
         arg = ''
         if len(args) > 0:
-            arg = args[0]
+            arg = args[0].lower()
             if arg == 'on':
                 return self.update_setting('update', 'enabled', True, 'Auto updates turned on')
             elif arg == 'off':
@@ -398,7 +399,7 @@ class WorkflowActions(dict):
 
         arg = ''
         if len(args) > 0:
-            arg = args[0]
+            arg = args[0].lower()
             if arg == 'daily':
                 return self.update_setting('update', 'frequency', 1, 'Update frequency changed to daily')
             elif arg == 'weekly':
@@ -462,7 +463,7 @@ class WorkflowActions(dict):
 
         arg = ''
         if len(args) > 0:
-            arg = args[0]
+            arg = args[0].lower()
             if arg == 'on':
                 return self.update_setting('update', 'include-prereleases', True,
                                            'Pre-releases will be included next time')
@@ -516,8 +517,8 @@ class WorkflowActions(dict):
         :rtype: ``boolean``.
         """
         message = 'No data to be cleared'
-        path = self.workflow.data.directory if which == 'data' else self.workflow.cache.directory
-        if os.path.exists(path):
+        path = self.workflow.data.directory if which.lower() == 'data' else self.workflow.cache.directory
+        if os.path.exists(os.path.expanduser(path)):
             for filename in os.listdir(path):
                 current = os.path.join(path, filename)
                 if os.path.isdir(current):
